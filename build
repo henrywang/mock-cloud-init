@@ -4,4 +4,4 @@ MOCK="mock -r ${OS:-default}"
 
 BIND_MOUNT="--plugin-option=bind_mount:dirs=[(\"$(pwd)\", \"/builddir/cloud-init\")]"
 
-$MOCK --chroot --unpriv "$BIND_MOUNT" --cwd="/builddir/cloud-init" 'make rpm'
+$MOCK --chroot --isolation=simple --unpriv "$BIND_MOUNT" --cwd="/builddir/cloud-init" 'make rpm'

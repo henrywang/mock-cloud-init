@@ -1,0 +1,62 @@
+name: Build RPM Package
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  build_rpm:
+    name: RPM Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os_release: ["fedora-31", "fedora-32", "fedora-rawhide"]
+    container:
+      image: docker.io/library/fedora:latest
+      env:
+        OS: "${{matrix.os_release}}-x86_64"
+      options: --cap-add=SYS_ADMIN --privileged
+
+    steps:
+      - name: Prepare building container
+        run: |
+          echo "%_netsharedpath /sys:/proc" >> /etc/rpm/macros.netshared
+          dnf -y update
+          dnf -y install git mock
+          groupadd -f -g 135 -r mock
+
+      - name: Clone cloud-init repository
+        run: git clone -b rpm https://github.com/henrywang/cloud-init.git
+        ## Cannot use checkout action due to tag and describe lose
+        # uses: actions/checkout@v2
+        # with:
+        #   repository: henrywang/cloud-init
+        #   ref: rpm
+        #   path: cloud-init
+
+      - name: Clone mock-cloud-init repository
+        uses: actions/checkout@v2
+        with:
+          path: mock-cloud-init
+
+      - name: Build RPM
+        run: |
+          ../mock-cloud-init/build-mock && ../mock-cloud-init/build
+        working-directory: ./cloud-init
+
+      - name: Get RPM file name
+        id: rpm_file_name
+        run: echo "::set-output name=file::$(ls ./cloud-init/cloud-init*.noarch.rpm)"
+
+      - name: Upload RPM
+        uses: actions/upload-artifact@v1
+        with:
+          name: "cloud-init-${{ matrix.os_release }}.noarch.rpm"
+          path: ${{ steps.rpm_file_name.outputs.file  }}
