@@ -1,0 +1,12 @@
+#! /bin/sh
+set -eux
+MOCK="mock -r ${OS:-default}"
+
+$MOCK --clean
+
+# install cloud-init's build dependencies
+$MOCK -i python3-devel python3-setuptools python3-PyYAML python3-jsonschema python3-requests python3-six python3-jinja2 python3-pyflakes git e2fsprogs iproute net-tools procps python3-configobj python3-jsonpatch python3-oauthlib rsyslog sudo systemd\  systemd-units
+
+$MOCK --chroot --unpriv -- mkdir -p /builddir/cloud-init
+
+$MOCK --chroot -- ln -s /usr/bin/python3 /usr/bin/python
